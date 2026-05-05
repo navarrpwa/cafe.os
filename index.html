@@ -1352,69 +1352,142 @@ function deleteExpense(id){
 // ═══════════════════════════════════════════════════════════════
 // STAFF
 // ═══════════════════════════════════════════════════════════════
+
+// Helper: calculate a staff member's effective weekly pay
+function staffWeeklyPay(s){
+  if(s.salaryType==='monthly') return (s.monthlySalary||0)/4.33
+  if(s.salaryType==='fixed_weekly') return s.weeklyRate||0
+  return (s.hourlyRate||0)*(s.hoursThisWeek||0)
+}
+function staffMonthlyCost(s){
+  if(s.salaryType==='monthly') return s.monthlySalary||0
+  if(s.salaryType==='fixed_weekly') return (s.weeklyRate||0)*4.33
+  return (s.hourlyRate||0)*(s.hoursThisWeek||0)*4.33
+}
+
 function renderStaff(){
-  const totalWages = state.staff.reduce((s,st)=>s+st.hourlyRate*st.hoursThisWeek,0)
+  const totalWeekly   = state.staff.reduce((sum,s)=>sum+staffWeeklyPay(s),0)
+  const totalMonthly  = state.staff.reduce((sum,s)=>sum+staffMonthlyCost(s),0)
+  const avgHours      = state.staff.length ? (state.staff.reduce((s,x)=>s+(x.hoursThisWeek||0),0)/state.staff.length).toFixed(1) : 0
+
   return `<div class="page-scroll page">
+
+  <!-- KPI row -->
   <div class="grid4 mb">
-    <div class="kpi"><div class="kpi-label">Total Staff</div><div class="kpi-val">${state.staff.length}</div></div>
-    <div class="kpi"><div class="kpi-label">Weekly Wage Bill</div><div class="kpi-val" style="color:var(--red)">${cur(totalWages)}</div></div>
-    <div class="kpi"><div class="kpi-label">Avg Hours/Week</div><div class="kpi-val">${state.staff.length?(state.staff.reduce((s,st)=>s+st.hoursThisWeek,0)/state.staff.length).toFixed(1):0}h</div></div>
-    <div class="kpi"><div class="kpi-label">Avg Hourly Rate</div><div class="kpi-val">${cur(state.staff.length?state.staff.reduce((s,st)=>s+st.hourlyRate,0)/state.staff.length:0)}</div></div>
+    <div class="kpi">
+      <div class="kpi-label">Total Staff</div>
+      <div class="kpi-val">${state.staff.length}</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-label">Weekly Wage Bill</div>
+      <div class="kpi-val" style="color:var(--red)">${cur(totalWeekly)}</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-label">Monthly Wage Bill</div>
+      <div class="kpi-val" style="color:var(--red)">${cur(totalMonthly)}</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-label">Avg Hours / Week</div>
+      <div class="kpi-val">${avgHours}h</div>
+    </div>
   </div>
 
+  <!-- Staff cards -->
   <div class="grid2 gap mb">
-    ${state.staff.map(s=>`
+    ${state.staff.map(s=>{
+      const weekly = staffWeeklyPay(s)
+      const monthly = staffMonthlyCost(s)
+      const salLabel = s.salaryType==='monthly'
+        ? `${cur(s.monthlySalary||0)}/mo`
+        : s.salaryType==='fixed_weekly'
+        ? `${cur(s.weeklyRate||0)}/wk`
+        : `${cur(s.hourlyRate||0)}/hr`
+      const salIcon = s.salaryType==='monthly' ? '📅' : s.salaryType==='fixed_weekly' ? '🗓️' : '⏱️'
+      return `
       <div class="staff-card">
-        <div class="staff-avatar" style="background:${s.color}22;color:${s.color}">${s.name.split(' ').map(n=>n[0]).join('')}</div>
+        <div class="staff-avatar" style="background:${s.color}22;color:${s.color}">
+          ${s.name.split(' ').map(n=>n[0]).join('')}
+        </div>
         <div class="staff-info">
           <div class="staff-name">${s.name}</div>
-          <div class="staff-role">${s.role} · ${s.phone}</div>
-          <div class="flex gap-sm mt-sm" style="align-items:center">
-            <span class="badge badge-green">${s.hoursThisWeek}h this week</span>
-            <span class="badge badge-purple">${cur(s.hourlyRate)}/hr</span>
-            <span class="badge badge-orange">${cur(s.hourlyRate*s.hoursThisWeek)} wages</span>
+          <div class="staff-role">${s.role} · ${s.phone||'—'}</div>
+          <div class="flex gap-sm mt-sm" style="align-items:center;flex-wrap:wrap">
+            <span class="badge badge-green">${s.hoursThisWeek||0}h this week</span>
+            <span class="badge badge-purple">${salIcon} ${salLabel}</span>
+            <span class="badge badge-orange">~${cur(weekly)} this week</span>
           </div>
+          ${s.notes?`<div style="font-size:11px;color:var(--text3);margin-top:6px;font-style:italic">📝 ${s.notes}</div>`:''}
         </div>
         <div class="flex col gap-sm">
           <button class="btn btn-ghost btn-xs" onclick="editStaff(${s.id})">✏ Edit</button>
+          <button class="btn btn-primary btn-xs" onclick="openSalaryModal(${s.id})">💰 Salary</button>
           <button class="btn btn-ghost btn-xs" onclick="logHours(${s.id})">⏱ Hours</button>
           <button class="btn btn-danger btn-xs" onclick="deleteStaff(${s.id})">✕</button>
         </div>
-      </div>`).join('')}
+      </div>`}).join('')}
   </div>
 
-  <div class="sh mt"><div class="sh-title">📊 Staff Hours & Wages This Week</div></div>
+  <!-- Salary table -->
+  <div class="sh mt"><div class="sh-title">💰 Salary & Wages Overview</div></div>
   <div class="tbl-wrap mt-sm">
     <table class="tbl">
-      <thead><tr><th>Name</th><th>Role</th><th>Hours This Week</th><th>Hourly Rate</th><th>Weekly Wages</th><th>Contact</th></tr></thead>
+      <thead><tr>
+        <th>Name</th><th>Role</th><th>Salary Type</th><th>Rate</th>
+        <th>Hours/Week</th><th>Weekly Pay</th><th>Monthly Cost</th><th>Actions</th>
+      </tr></thead>
       <tbody>
-        ${state.staff.map(s=>`<tr>
-          <td>
-            <div class="flex gap-sm" style="align-items:center">
-              <div style="width:32px;height:32px;border-radius:50%;background:${s.color}22;color:${s.color};display:flex;align-items:center;justify-content:center;font-weight:800;font-size:12px;flex-shrink:0">${s.name.split(' ').map(n=>n[0]).join('')}</div>
-              <span style="font-weight:600">${s.name}</span>
-            </div>
-          </td>
-          <td><span class="badge badge-blue">${s.role}</span></td>
-          <td>
-            <div class="flex gap-sm" style="align-items:center">
-              <div class="progress-wrap" style="width:80px"><div class="progress-bar" style="width:${(s.hoursThisWeek/48*100).toFixed(0)}%;background:var(--green)"></div></div>
-              <span style="font-family:'DM Mono',monospace">${s.hoursThisWeek}h</span>
-            </div>
-          </td>
-          <td style="font-family:'DM Mono',monospace">${cur(s.hourlyRate)}</td>
-          <td style="font-family:'DM Mono',monospace;font-weight:700;color:var(--accent)">${cur(s.hourlyRate*s.hoursThisWeek)}</td>
-          <td style="color:var(--text2);font-size:12px">${s.phone}</td>
-        </tr>`).join('')}
+        ${state.staff.map(s=>{
+          const weekly  = staffWeeklyPay(s)
+          const monthly = staffMonthlyCost(s)
+          const typeLabel = s.salaryType==='monthly' ? '📅 Monthly' : s.salaryType==='fixed_weekly' ? '🗓️ Fixed Weekly' : '⏱️ Hourly'
+          const rateStr   = s.salaryType==='monthly'
+            ? cur(s.monthlySalary||0)+'/mo'
+            : s.salaryType==='fixed_weekly'
+            ? cur(s.weeklyRate||0)+'/wk'
+            : cur(s.hourlyRate||0)+'/hr'
+          return `<tr>
+            <td>
+              <div class="flex gap-sm" style="align-items:center">
+                <div style="width:34px;height:34px;border-radius:50%;background:${s.color}22;color:${s.color};display:flex;align-items:center;justify-content:center;font-weight:800;font-size:12px;flex-shrink:0">
+                  ${s.name.split(' ').map(n=>n[0]).join('')}
+                </div>
+                <div>
+                  <div style="font-weight:700;font-size:13px">${s.name}</div>
+                  <div style="font-size:11px;color:var(--text3)">${s.phone||'—'}</div>
+                </div>
+              </div>
+            </td>
+            <td><span class="badge badge-blue">${s.role}</span></td>
+            <td><span class="badge badge-purple">${typeLabel}</span></td>
+            <td style="font-family:'DM Mono',monospace;font-weight:600;color:var(--accent)">${rateStr}</td>
+            <td>
+              <div class="flex gap-sm" style="align-items:center">
+                <div class="progress-wrap" style="width:64px">
+                  <div class="progress-bar" style="width:${Math.min(100,((s.hoursThisWeek||0)/48)*100).toFixed(0)}%;background:var(--green)"></div>
+                </div>
+                <span style="font-family:'DM Mono',monospace;font-size:12px">${s.hoursThisWeek||0}h</span>
+              </div>
+            </td>
+            <td style="font-family:'DM Mono',monospace;font-weight:700;color:var(--accent)">${cur(weekly)}</td>
+            <td style="font-family:'DM Mono',monospace;font-weight:700;color:var(--red)">${cur(monthly)}</td>
+            <td>
+              <div class="flex gap-sm">
+                <button class="btn btn-primary btn-xs" onclick="openSalaryModal(${s.id})">💰 Edit Salary</button>
+                <button class="btn btn-ghost btn-xs" onclick="logHours(${s.id})">⏱ Hours</button>
+              </div>
+            </td>
+          </tr>`}).join('')}
         <tr style="background:var(--surface2)">
-          <td colspan="4" style="font-weight:700;text-align:right;padding-right:24px">Total Weekly Wages:</td>
-          <td style="font-family:'DM Mono',monospace;font-weight:800;color:var(--red)">${cur(totalWages)}</td>
+          <td colspan="5" style="font-weight:700;text-align:right;padding-right:16px;font-size:13px">Totals:</td>
+          <td style="font-family:'DM Mono',monospace;font-weight:800;color:var(--accent)">${cur(totalWeekly)}</td>
+          <td style="font-family:'DM Mono',monospace;font-weight:800;color:var(--red)">${cur(totalMonthly)}</td>
           <td></td>
         </tr>
       </tbody>
     </table>
   </div>
 
+  <!-- ── ADD / EDIT STAFF MODAL ─────────────────────────── -->
   <div class="overlay" id="staff-modal" style="display:none">
     <div class="modal">
       <div class="modal-head">
@@ -1438,38 +1511,121 @@ function renderStaff(){
         </div>
         <div class="form-row cols2">
           <div class="form-group">
-            <label class="form-label">Hourly Rate</label>
-            <input class="form-input" type="number" id="staff-rate" step="0.5" placeholder="13.00"/>
+            <label class="form-label">Phone</label>
+            <input class="form-input" id="staff-phone" placeholder="+974 5000-0100"/>
           </div>
           <div class="form-group">
-            <label class="form-label">Phone</label>
-            <input class="form-input" id="staff-phone" placeholder="+1 555-0100"/>
+            <label class="form-label">Hours This Week</label>
+            <input class="form-input" type="number" id="staff-hours" placeholder="0" step="0.5"/>
           </div>
         </div>
         <div class="form-group">
-          <label class="form-label">Hours This Week</label>
-          <input class="form-input" type="number" id="staff-hours" placeholder="0"/>
+          <label class="form-label">Notes (optional)</label>
+          <input class="form-input" id="staff-notes" placeholder="e.g. Part-time, morning shift only"/>
         </div>
       </div>
       <div class="modal-foot">
         <button class="btn btn-ghost" onclick="closeModal('staff-modal')">Cancel</button>
-        <button class="btn btn-primary" onclick="saveStaff()">Save</button>
+        <button class="btn btn-primary" onclick="saveStaff()">Save Member</button>
       </div>
     </div>
   </div>
 
+  <!-- ── SALARY EDIT MODAL ──────────────────────────────── -->
+  <div class="overlay" id="salary-modal" style="display:none">
+    <div class="modal" style="max-width:480px">
+      <div class="modal-head">
+        <div class="modal-title" id="salary-modal-title">💰 Edit Salary</div>
+        <button class="btn btn-ghost btn-sm" onclick="closeModal('salary-modal')">✕</button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="salary-staff-id"/>
+
+        <!-- staff summary strip -->
+        <div id="salary-staff-info" style="background:var(--surface2);border-radius:var(--r2);padding:12px 14px;margin-bottom:18px;display:flex;align-items:center;gap:12px">
+          <div id="salary-avatar" style="width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:14px;flex-shrink:0"></div>
+          <div>
+            <div id="salary-name" style="font-weight:700;font-size:14px"></div>
+            <div id="salary-role" style="font-size:12px;color:var(--text3)"></div>
+          </div>
+        </div>
+
+        <div class="form-group mb">
+          <label class="form-label">Salary / Payment Type</label>
+          <select class="form-input" id="salary-type" onchange="toggleSalaryFields()">
+            <option value="hourly">⏱️ Hourly Rate</option>
+            <option value="monthly">📅 Fixed Monthly Salary</option>
+            <option value="fixed_weekly">🗓️ Fixed Weekly Rate</option>
+          </select>
+        </div>
+
+        <!-- Hourly fields -->
+        <div id="salary-hourly-fields">
+          <div class="form-row cols2">
+            <div class="form-group">
+              <label class="form-label">Hourly Rate (QR)</label>
+              <input class="form-input" type="number" id="salary-hourly-rate" step="0.5" placeholder="50"/>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Expected Hours / Week</label>
+              <input class="form-input" type="number" id="salary-expected-hours" step="0.5" placeholder="40"/>
+            </div>
+          </div>
+          <div id="salary-hourly-preview" style="background:var(--surface2);border-radius:var(--r2);padding:12px 14px;font-size:13px;color:var(--text2)">
+            Enter rate and hours to see preview
+          </div>
+        </div>
+
+        <!-- Monthly fields -->
+        <div id="salary-monthly-fields" style="display:none">
+          <div class="form-group">
+            <label class="form-label">Monthly Salary (QR)</label>
+            <input class="form-input" type="number" id="salary-monthly-val" step="50" placeholder="3000"
+              oninput="updateMonthlyPreview()"/>
+          </div>
+          <div id="salary-monthly-preview" style="background:var(--surface2);border-radius:var(--r2);padding:12px 14px;font-size:13px;color:var(--text2)">
+            Enter salary to see breakdown
+          </div>
+        </div>
+
+        <!-- Fixed weekly fields -->
+        <div id="salary-weekly-fields" style="display:none">
+          <div class="form-group">
+            <label class="form-label">Fixed Weekly Rate (QR)</label>
+            <input class="form-input" type="number" id="salary-weekly-val" step="25" placeholder="700"
+              oninput="updateWeeklyPreview()"/>
+          </div>
+          <div id="salary-weekly-preview" style="background:var(--surface2);border-radius:var(--r2);padding:12px 14px;font-size:13px;color:var(--text2)">
+            Enter weekly rate to see breakdown
+          </div>
+        </div>
+
+        <div class="form-group mt" style="margin-top:14px">
+          <label class="form-label">Salary Notes (optional)</label>
+          <input class="form-input" id="salary-notes-field" placeholder="e.g. Includes housing allowance"/>
+        </div>
+      </div>
+      <div class="modal-foot">
+        <button class="btn btn-ghost" onclick="closeModal('salary-modal')">Cancel</button>
+        <button class="btn btn-primary" onclick="saveSalary()">💾 Save Salary</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── LOG HOURS MODAL ────────────────────────────────── -->
   <div class="overlay" id="hours-modal" style="display:none">
     <div class="modal" style="max-width:360px">
       <div class="modal-head">
-        <div class="modal-title" id="hours-title">Log Hours</div>
+        <div class="modal-title" id="hours-title">⏱ Log Hours</div>
         <button class="btn btn-ghost btn-sm" onclick="closeModal('hours-modal')">✕</button>
       </div>
       <div class="modal-body">
         <input type="hidden" id="hours-staff-id"/>
         <div class="form-group">
-          <label class="form-label">Hours This Week</label>
+          <label class="form-label">Hours Worked This Week</label>
           <input class="form-input" type="number" id="hours-val" step="0.5" placeholder="0"/>
         </div>
+        <div id="hours-pay-preview" style="background:var(--surface2);border-radius:var(--r2);padding:12px 14px;font-size:13px;color:var(--text2);margin-top:8px"></div>
       </div>
       <div class="modal-foot">
         <button class="btn btn-ghost" onclick="closeModal('hours-modal')">Cancel</button>
@@ -1477,55 +1633,196 @@ function renderStaff(){
       </div>
     </div>
   </div>
+
 </div>`
 }
 
+// ── Salary modal helpers ─────────────────────────────────────
+function toggleSalaryFields(){
+  const type = document.getElementById('salary-type').value
+  document.getElementById('salary-hourly-fields').style.display  = type==='hourly'       ?'block':'none'
+  document.getElementById('salary-monthly-fields').style.display = type==='monthly'      ?'block':'none'
+  document.getElementById('salary-weekly-fields').style.display  = type==='fixed_weekly' ?'block':'none'
+}
+
+function updateHourlyPreview(){
+  const rate  = parseFloat(document.getElementById('salary-hourly-rate').value)||0
+  const hours = parseFloat(document.getElementById('salary-expected-hours').value)||0
+  const weekly  = rate*hours
+  const monthly = weekly*4.33
+  const el = document.getElementById('salary-hourly-preview')
+  if(!rate||!hours){ el.textContent='Enter rate and hours to see preview'; return }
+  el.innerHTML = `<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;text-align:center">
+    <div><div style="font-size:10px;text-transform:uppercase;letter-spacing:1px;color:var(--text3);margin-bottom:4px">Per Hour</div>
+      <div style="font-family:'DM Mono',monospace;font-weight:700;font-size:15px;color:var(--accent)">QR ${rate.toFixed(2)}</div></div>
+    <div><div style="font-size:10px;text-transform:uppercase;letter-spacing:1px;color:var(--text3);margin-bottom:4px">Per Week</div>
+      <div style="font-family:'DM Mono',monospace;font-weight:700;font-size:15px;color:var(--blue)">QR ${weekly.toFixed(2)}</div></div>
+    <div><div style="font-size:10px;text-transform:uppercase;letter-spacing:1px;color:var(--text3);margin-bottom:4px">Per Month</div>
+      <div style="font-family:'DM Mono',monospace;font-weight:700;font-size:15px;color:var(--red)">QR ${monthly.toFixed(2)}</div></div>
+  </div>`
+}
+
+function updateMonthlyPreview(){
+  const monthly = parseFloat(document.getElementById('salary-monthly-val').value)||0
+  const weekly  = monthly/4.33
+  const daily   = monthly/30
+  const el = document.getElementById('salary-monthly-preview')
+  if(!monthly){ el.textContent='Enter salary to see breakdown'; return }
+  el.innerHTML = `<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;text-align:center">
+    <div><div style="font-size:10px;text-transform:uppercase;letter-spacing:1px;color:var(--text3);margin-bottom:4px">Per Day</div>
+      <div style="font-family:'DM Mono',monospace;font-weight:700;font-size:15px;color:var(--green)">QR ${daily.toFixed(2)}</div></div>
+    <div><div style="font-size:10px;text-transform:uppercase;letter-spacing:1px;color:var(--text3);margin-bottom:4px">Per Week</div>
+      <div style="font-family:'DM Mono',monospace;font-weight:700;font-size:15px;color:var(--blue)">QR ${weekly.toFixed(2)}</div></div>
+    <div><div style="font-size:10px;text-transform:uppercase;letter-spacing:1px;color:var(--text3);margin-bottom:4px">Per Month</div>
+      <div style="font-family:'DM Mono',monospace;font-weight:700;font-size:15px;color:var(--red)">QR ${monthly.toFixed(2)}</div></div>
+  </div>`
+}
+
+function updateWeeklyPreview(){
+  const weekly  = parseFloat(document.getElementById('salary-weekly-val').value)||0
+  const monthly = weekly*4.33
+  const daily   = weekly/7
+  const el = document.getElementById('salary-weekly-preview')
+  if(!weekly){ el.textContent='Enter weekly rate to see breakdown'; return }
+  el.innerHTML = `<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;text-align:center">
+    <div><div style="font-size:10px;text-transform:uppercase;letter-spacing:1px;color:var(--text3);margin-bottom:4px">Per Day</div>
+      <div style="font-family:'DM Mono',monospace;font-weight:700;font-size:15px;color:var(--green)">QR ${daily.toFixed(2)}</div></div>
+    <div><div style="font-size:10px;text-transform:uppercase;letter-spacing:1px;color:var(--text3);margin-bottom:4px">Per Week</div>
+      <div style="font-family:'DM Mono',monospace;font-weight:700;font-size:15px;color:var(--blue)">QR ${weekly.toFixed(2)}</div></div>
+    <div><div style="font-size:10px;text-transform:uppercase;letter-spacing:1px;color:var(--text3);margin-bottom:4px">Per Month</div>
+      <div style="font-family:'DM Mono',monospace;font-weight:700;font-size:15px;color:var(--red)">QR ${monthly.toFixed(2)}</div></div>
+  </div>`
+}
+
+// ── Open Salary Modal ────────────────────────────────────────
+function openSalaryModal(id){
+  const s = state.staff.find(x=>x.id===id); if(!s)return
+  document.getElementById('salary-staff-id').value = id
+  document.getElementById('salary-modal-title').textContent = `💰 Salary — ${s.name}`
+  document.getElementById('salary-name').textContent = s.name
+  document.getElementById('salary-role').textContent = s.role
+  const av = document.getElementById('salary-avatar')
+  av.textContent = s.name.split(' ').map(n=>n[0]).join('')
+  av.style.background = s.color+'22'
+  av.style.color = s.color
+  // Pre-fill
+  const type = s.salaryType||'hourly'
+  document.getElementById('salary-type').value = type
+  document.getElementById('salary-hourly-rate').value  = s.hourlyRate||''
+  document.getElementById('salary-expected-hours').value = s.hoursThisWeek||''
+  document.getElementById('salary-monthly-val').value  = s.monthlySalary||''
+  document.getElementById('salary-weekly-val').value   = s.weeklyRate||''
+  document.getElementById('salary-notes-field').value  = s.salaryNotes||''
+  toggleSalaryFields()
+  // wire up live preview for hourly
+  setTimeout(()=>{
+    const rateEl  = document.getElementById('salary-hourly-rate')
+    const hoursEl = document.getElementById('salary-expected-hours')
+    if(rateEl)  rateEl.addEventListener('input', updateHourlyPreview)
+    if(hoursEl) hoursEl.addEventListener('input', updateHourlyPreview)
+    updateHourlyPreview()
+    updateMonthlyPreview()
+    updateWeeklyPreview()
+  }, 50)
+  openModal('salary-modal')
+}
+
+function saveSalary(){
+  const id   = parseInt(document.getElementById('salary-staff-id').value)
+  const type = document.getElementById('salary-type').value
+  const s    = state.staff.find(x=>x.id===id); if(!s)return
+  s.salaryType   = type
+  s.salaryNotes  = document.getElementById('salary-notes-field').value
+  if(type==='hourly'){
+    s.hourlyRate  = parseFloat(document.getElementById('salary-hourly-rate').value)||0
+    s.hoursThisWeek = parseFloat(document.getElementById('salary-expected-hours').value)||s.hoursThisWeek
+    s.monthlySalary = null; s.weeklyRate = null
+  } else if(type==='monthly'){
+    s.monthlySalary = parseFloat(document.getElementById('salary-monthly-val').value)||0
+    s.hourlyRate = null; s.weeklyRate = null
+  } else {
+    s.weeklyRate   = parseFloat(document.getElementById('salary-weekly-val').value)||0
+    s.hourlyRate = null; s.monthlySalary = null
+  }
+  saveAll(); closeModal('salary-modal')
+  toast(`${s.name}'s salary updated!`, 'success')
+  render()
+}
+
+// ── Staff CRUD ───────────────────────────────────────────────
 function openAddStaff(){
-  ['staff-id','staff-name','staff-phone','staff-hours','staff-rate'].forEach(id=>document.getElementById(id)&&(document.getElementById(id).value=''))
+  ['staff-id','staff-name','staff-phone','staff-hours','staff-notes'].forEach(id=>{
+    const el=document.getElementById(id); if(el) el.value=''
+  })
   document.getElementById('staff-modal-title').textContent='Add Staff Member'
   openModal('staff-modal')
 }
 function editStaff(id){
   const s=state.staff.find(x=>x.id===id); if(!s)return
-  document.getElementById('staff-id').value=id
-  document.getElementById('staff-name').value=s.name
-  document.getElementById('staff-role').value=s.role
-  document.getElementById('staff-rate').value=s.hourlyRate
-  document.getElementById('staff-phone').value=s.phone
-  document.getElementById('staff-hours').value=s.hoursThisWeek
+  document.getElementById('staff-id').value    = id
+  document.getElementById('staff-name').value  = s.name
+  document.getElementById('staff-role').value  = s.role
+  document.getElementById('staff-phone').value = s.phone||''
+  document.getElementById('staff-hours').value = s.hoursThisWeek||0
+  document.getElementById('staff-notes').value = s.notes||''
   document.getElementById('staff-modal-title').textContent='Edit Staff Member'
   openModal('staff-modal')
 }
 function saveStaff(){
-  const id=parseInt(document.getElementById('staff-id').value)||null
-  const s={
-    name:document.getElementById('staff-name').value,
-    role:document.getElementById('staff-role').value,
-    hourlyRate:parseFloat(document.getElementById('staff-rate').value)||12,
-    phone:document.getElementById('staff-phone').value||'—',
-    hoursThisWeek:parseFloat(document.getElementById('staff-hours').value)||0,
-    color:['#f5a623','#4da6ff','#4ecb71','#a78bfa','#f472b6','#ff6b6b'][Math.floor(Math.random()*6)]
+  const id = parseInt(document.getElementById('staff-id').value)||null
+  const data = {
+    name:  document.getElementById('staff-name').value.trim(),
+    role:  document.getElementById('staff-role').value,
+    phone: document.getElementById('staff-phone').value||'—',
+    hoursThisWeek: parseFloat(document.getElementById('staff-hours').value)||0,
+    notes: document.getElementById('staff-notes').value,
   }
-  if(!s.name){toast('Name required','error');return}
-  if(id){const idx=state.staff.findIndex(x=>x.id===id);if(idx>=0)state.staff[idx]={...state.staff[idx],...s}}
-  else state.staff.push({...s,id:Date.now()})
-  closeModal('staff-modal');saveAll();toast('Staff saved!','success');render()
+  if(!data.name){ toast('Name is required','error'); return }
+  if(id){
+    const idx=state.staff.findIndex(x=>x.id===id)
+    if(idx>=0) state.staff[idx]={...state.staff[idx],...data}
+  } else {
+    state.staff.push({
+      ...data, id:Date.now(),
+      salaryType:'hourly', hourlyRate:45,
+      color:['#c47d1a','#2472c8','#2a9d4e','#6d4fc4','#c4306e','#d94040'][Math.floor(Math.random()*6)]
+    })
+  }
+  closeModal('staff-modal'); saveAll()
+  toast(id?'Staff member updated!':'Staff member added!','success')
+  render()
 }
+
 function logHours(id){
   const s=state.staff.find(x=>x.id===id); if(!s)return
-  document.getElementById('hours-staff-id').value=id
-  document.getElementById('hours-val').value=s.hoursThisWeek
-  document.getElementById('hours-title').textContent=`Hours: ${s.name}`
+  document.getElementById('hours-staff-id').value = id
+  document.getElementById('hours-val').value       = s.hoursThisWeek||0
+  document.getElementById('hours-title').textContent = `⏱ Hours — ${s.name}`
+  // Show pay preview
+  const rate = s.hourlyRate||0
+  const prev = document.getElementById('hours-pay-preview')
+  if(s.salaryType==='monthly'){
+    prev.innerHTML = `<span style="color:var(--text3)">Monthly salary — hours for attendance only</span>`
+  } else if(s.salaryType==='fixed_weekly'){
+    prev.innerHTML = `<span style="color:var(--text3)">Fixed weekly rate — hours for attendance only</span>`
+  } else {
+    prev.innerHTML = `Rate: <strong>QR ${rate}/hr</strong> — update hours to recalculate pay`
+    document.getElementById('hours-val').addEventListener('input',function(){
+      const h=parseFloat(this.value)||0
+      prev.innerHTML = `Rate: <strong>QR ${rate}/hr</strong> · <strong>${h}h</strong> = <strong style="color:var(--accent)">QR ${(rate*h).toFixed(2)}</strong> this week`
+    })
+  }
   openModal('hours-modal')
 }
 function saveHours(){
-  const id=parseInt(document.getElementById('hours-staff-id').value)
-  const h=parseFloat(document.getElementById('hours-val').value)||0
-  const s=state.staff.find(x=>x.id===id); if(s){s.hoursThisWeek=h;saveAll();toast('Hours updated!','success');closeModal('hours-modal');render()}
+  const id = parseInt(document.getElementById('hours-staff-id').value)
+  const h  = parseFloat(document.getElementById('hours-val').value)||0
+  const s  = state.staff.find(x=>x.id===id)
+  if(s){ s.hoursThisWeek=h; saveAll(); toast('Hours updated!','success'); closeModal('hours-modal'); render() }
 }
 function deleteStaff(id){
-  if(!confirm('Remove this staff member?'))return
-  state.staff=state.staff.filter(s=>s.id!==id);saveAll();render()
+  if(!confirm('Remove this staff member?')) return
+  state.staff=state.staff.filter(s=>s.id!==id); saveAll(); render()
 }
 
 // ═══════════════════════════════════════════════════════════════
