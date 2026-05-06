@@ -251,9 +251,134 @@ textarea.form-input{resize:vertical;min-height:80px}
   .grid4,.grid3{grid-template-columns:1fr 1fr}
   .grid2{grid-template-columns:1fr}
 }
+
+/* ── Login Screen ─────────────────────────────────────────── */
+.login-screen{
+  position:fixed;inset:0;z-index:9999;
+  background:linear-gradient(135deg,#2c1a0e 0%,#4a2c10 45%,#6b3d15 100%);
+  display:flex;align-items:center;justify-content:center;padding:20px;
+  font-family:'Lato',sans-serif;
+}
+.login-bg-pattern{
+  position:absolute;inset:0;opacity:0.04;
+  background-image:radial-gradient(circle at 2px 2px,#fff 1px,transparent 0);
+  background-size:28px 28px;
+}
+.login-card{
+  background:#fff;border-radius:20px;padding:40px;width:100%;max-width:420px;
+  box-shadow:0 24px 80px rgba(0,0,0,0.4);position:relative;z-index:1;
+  animation:loginFadeIn 0.5s ease;
+}
+@keyframes loginFadeIn{
+  from{opacity:0;transform:translateY(24px) scale(0.97)}
+  to{opacity:1;transform:translateY(0) scale(1)}
+}
+.login-logo{text-align:center;margin-bottom:28px}
+.login-logo-icon{font-size:52px;display:block;margin-bottom:10px}
+.login-logo-name{font-family:'Syne',sans-serif;font-size:26px;font-weight:800;color:#2c1a0e;letter-spacing:-0.5px}
+.login-logo-sub{font-size:12px;color:#8c8474;letter-spacing:2px;text-transform:uppercase;margin-top:3px}
+.login-divider{height:1px;background:#e8e7e0;margin:20px 0}
+.login-field{margin-bottom:16px}
+.login-label{display:block;font-size:11px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;color:#8c8474;margin-bottom:7px}
+.login-input{
+  width:100%;padding:11px 14px;border-radius:10px;
+  border:1.5px solid #e0ddd4;background:#f8f7f4;
+  font-size:14px;color:#1a1714;outline:none;transition:all 0.2s;
+}
+.login-input:focus{border-color:#c47d1a;background:#fff;box-shadow:0 0 0 3px rgba(196,125,26,0.1)}
+.login-input.error{border-color:#d94040;background:#fff8f8}
+.login-input-wrap{position:relative}
+.login-eye{
+  position:absolute;right:12px;top:50%;transform:translateY(-50%);
+  cursor:pointer;font-size:16px;color:#8c8474;transition:color 0.2s;background:none;border:none;
+}
+.login-eye:hover{color:#c47d1a}
+.login-btn{
+  width:100%;padding:13px;border-radius:10px;background:#c47d1a;color:#fff;
+  font-family:'Syne',sans-serif;font-size:15px;font-weight:700;border:none;cursor:pointer;
+  transition:all 0.2s;margin-top:6px;letter-spacing:0.3px;
+}
+.login-btn:hover{background:#a8621a;transform:translateY(-1px);box-shadow:0 4px 16px rgba(196,125,26,0.35)}
+.login-btn:active{transform:translateY(0)}
+.login-btn:disabled{opacity:0.6;pointer-events:none}
+.login-error{
+  background:#fff0f0;border:1px solid #f5c2c2;border-radius:8px;
+  padding:10px 14px;font-size:13px;color:#d94040;font-weight:600;
+  display:none;margin-top:12px;align-items:center;gap:8px;
+}
+.login-error.show{display:flex}
+.login-users-hint{margin-top:20px;border-top:1px solid #e8e7e0;padding-top:16px}
+.login-hint-title{font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#8c8474;margin-bottom:10px}
+.login-user-chip{
+  display:flex;align-items:center;gap:10px;padding:8px 12px;border-radius:8px;
+  background:#f8f7f4;border:1px solid #e8e7e0;cursor:pointer;transition:all 0.15s;margin-bottom:6px;
+}
+.login-user-chip:hover{border-color:#c47d1a;background:#fdf6ec}
+.login-chip-avatar{
+  width:30px;height:30px;border-radius:50%;display:flex;align-items:center;
+  justify-content:center;font-size:12px;font-weight:800;flex-shrink:0;
+}
+.login-chip-name{font-size:13px;font-weight:700;color:#1a1714}
+.login-chip-role{font-size:11px;color:#8c8474;margin-left:auto}
+.login-chip-pw{font-size:11px;color:#c47d1a;font-family:'DM Mono',monospace}
+.login-footer{text-align:center;margin-top:16px;font-size:11px;color:#8c8474}
+/* Topbar user pill */
+.user-pill{
+  display:flex;align-items:center;gap:8px;padding:4px 12px 4px 4px;
+  border-radius:50px;background:var(--surface2);border:1px solid var(--border);cursor:pointer;transition:all 0.15s;
+}
+.user-pill:hover{border-color:var(--border2)}
+.up-avatar{
+  width:28px;height:28px;border-radius:50%;display:flex;align-items:center;
+  justify-content:center;font-size:11px;font-weight:800;flex-shrink:0;
+}
+.up-name{font-size:12px;font-weight:700;color:var(--text)}
+.up-role{font-size:11px;color:var(--text3)}
 </style>
 </head>
 <body>
+
+<!-- ═══════════════════════════════════════════════════════════
+     LOGIN SCREEN
+════════════════════════════════════════════════════════════ -->
+<div id="login-screen" class="login-screen">
+  <div class="login-bg-pattern"></div>
+  <div class="login-card">
+    <div class="login-logo">
+      <span class="login-logo-icon">☕</span>
+      <div class="login-logo-name">CaféOS</div>
+      <div class="login-logo-sub">Management System</div>
+    </div>
+
+    <div class="login-field">
+      <label class="login-label">Username</label>
+      <input class="login-input" id="login-username" type="text" placeholder="Enter your username" autocomplete="username" autocapitalize="none"/>
+    </div>
+
+    <div class="login-field">
+      <label class="login-label">Password</label>
+      <div class="login-input-wrap">
+        <input class="login-input" id="login-password" type="password" placeholder="Enter your password" autocomplete="current-password"
+          onkeydown="if(event.key==='Enter')doLogin()"/>
+        <button class="login-eye" id="login-eye-btn" onclick="toggleLoginPw()" title="Show/hide password">👁</button>
+      </div>
+    </div>
+
+    <div class="login-error" id="login-error">
+      <span>⚠</span><span id="login-error-msg">Incorrect username or password.</span>
+    </div>
+
+    <button class="login-btn" id="login-btn" onclick="doLogin()">Sign In →</button>
+
+    <!-- Quick-login chips -->
+    <div class="login-users-hint">
+      <div class="login-hint-title">Quick Login — tap to fill</div>
+      <div id="login-chips"></div>
+    </div>
+
+    <div class="login-footer">☕ All data stored locally on this device</div>
+  </div>
+</div>
 <div class="app" id="app">
   <!-- SIDEBAR -->
   <aside class="sidebar" id="sidebar">
@@ -312,6 +437,13 @@ textarea.form-input{resize:vertical;min-height:80px}
       <div class="page-title" id="page-title">Dashboard</div>
       <div class="topbar-actions">
         <div class="clock" id="clock">--:--:--</div>
+        <div class="user-pill" id="topbar-user" onclick="confirmLogout()" title="Click to sign out">
+          <div class="up-avatar" id="topbar-avatar"></div>
+          <div>
+            <div class="up-name" id="topbar-uname">—</div>
+            <div class="up-role" id="topbar-urole">—</div>
+          </div>
+        </div>
         <button class="tb-btn ghost" onclick="openSettings()">⚙ Settings</button>
         <button class="tb-btn primary" id="topbar-action" onclick="topbarAction()">+ New Order</button>
       </div>
@@ -1962,9 +2094,195 @@ function saveSettings(){
 }
 
 // ═══════════════════════════════════════════════════════════════
+// AUTH — Login / Session
+// ═══════════════════════════════════════════════════════════════
+
+// Built-in users list (saved in localStorage so admin can manage)
+const DEFAULT_USERS = [
+  { id:1, username:'admin',   password:'admin123',  name:'Admin',        role:'Owner / Admin',  color:'#c47d1a', canAccess:'all' },
+  { id:2, username:'manager', password:'manager1',  name:'Manager',      role:'Manager',        color:'#2472c8', canAccess:'all' },
+  { id:3, username:'barista', password:'barista1',  name:'Barista',      role:'Barista',        color:'#2a9d4e', canAccess:'pos,orders' },
+  { id:4, username:'cashier', password:'cashier1',  name:'Cashier',      role:'Cashier',        color:'#6d4fc4', canAccess:'pos,orders' },
+]
+
+function getUsers(){
+  return DB.load('users', DEFAULT_USERS)
+}
+
+let currentUser = null
+
+// ── Render login chips ────────────────────────────────────────
+function renderLoginChips(){
+  const users = getUsers()
+  const container = document.getElementById('login-chips')
+  if(!container) return
+  container.innerHTML = users.map(u=>`
+    <div class="login-user-chip" onclick="fillLogin('${u.username}','${u.password}')">
+      <div class="login-chip-avatar" style="background:${u.color}22;color:${u.color}">${u.name[0]}</div>
+      <div>
+        <div class="login-chip-name">${u.name}</div>
+        <span class="login-chip-role">${u.role}</span>
+      </div>
+      <span class="login-chip-pw">pw: ${u.password}</span>
+    </div>`).join('')
+}
+
+function fillLogin(username, password){
+  document.getElementById('login-username').value = username
+  document.getElementById('login-password').value = password
+  document.getElementById('login-username').classList.remove('error')
+  document.getElementById('login-password').classList.remove('error')
+  document.getElementById('login-error').classList.remove('show')
+  document.getElementById('login-password').focus()
+}
+
+function toggleLoginPw(){
+  const inp = document.getElementById('login-password')
+  const btn = document.getElementById('login-eye-btn')
+  if(inp.type==='password'){ inp.type='text'; btn.textContent='🙈' }
+  else { inp.type='password'; btn.textContent='👁' }
+}
+
+// ── Attempt login ─────────────────────────────────────────────
+function doLogin(){
+  const username = document.getElementById('login-username').value.trim().toLowerCase()
+  const password = document.getElementById('login-password').value
+  const errEl    = document.getElementById('login-error')
+  const errMsg   = document.getElementById('login-error-msg')
+  const btn      = document.getElementById('login-btn')
+
+  // Clear previous errors
+  errEl.classList.remove('show')
+  document.getElementById('login-username').classList.remove('error')
+  document.getElementById('login-password').classList.remove('error')
+
+  if(!username){ showLoginError('Please enter your username.'); document.getElementById('login-username').classList.add('error'); return }
+  if(!password){ showLoginError('Please enter your password.');  document.getElementById('login-password').classList.add('error'); return }
+
+  btn.textContent = 'Signing in…'
+  btn.disabled = true
+
+  setTimeout(()=>{
+    const users = getUsers()
+    const user  = users.find(u => u.username.toLowerCase()===username && u.password===password)
+
+    if(!user){
+      btn.textContent = 'Sign In →'
+      btn.disabled = false
+      document.getElementById('login-username').classList.add('error')
+      document.getElementById('login-password').classList.add('error')
+      showLoginError('Incorrect username or password. Please try again.')
+      document.getElementById('login-password').value = ''
+      document.getElementById('login-password').focus()
+      return
+    }
+
+    // Success — store session
+    currentUser = user
+    DB.save('session', { userId: user.id, loginTime: Date.now() })
+    mountApp(user)
+  }, 600)
+}
+
+function showLoginError(msg){
+  const el = document.getElementById('login-error-msg')
+  const wrap = document.getElementById('login-error')
+  if(el) el.textContent = msg
+  if(wrap) wrap.classList.add('show')
+}
+
+// ── Mount app after login ─────────────────────────────────────
+function mountApp(user){
+  // Hide login screen with fade
+  const ls = document.getElementById('login-screen')
+  ls.style.transition = 'opacity 0.4s ease'
+  ls.style.opacity = '0'
+  setTimeout(()=>{ ls.style.display='none' }, 400)
+
+  // Update topbar user pill
+  const avatar = document.getElementById('topbar-avatar')
+  if(avatar){
+    avatar.textContent = user.name[0]
+    avatar.style.background = user.color+'22'
+    avatar.style.color = user.color
+  }
+  document.getElementById('topbar-uname').textContent = user.name
+  document.getElementById('topbar-urole').textContent = user.role
+
+  toast(`Welcome back, ${user.name}! ☕`, 'success')
+  render()
+}
+
+// ── Logout ────────────────────────────────────────────────────
+function confirmLogout(){
+  if(!confirm(`Sign out as ${currentUser?.name}?`)) return
+  doLogout()
+}
+
+function doLogout(){
+  currentUser = null
+  DB.save('session', null)
+  // Reset login form
+  document.getElementById('login-username').value = ''
+  document.getElementById('login-password').value = ''
+  document.getElementById('login-password').type = 'password'
+  document.getElementById('login-eye-btn').textContent = '👁'
+  document.getElementById('login-error').classList.remove('show')
+  document.getElementById('login-username').classList.remove('error')
+  document.getElementById('login-password').classList.remove('error')
+  // Show login screen
+  const ls = document.getElementById('login-screen')
+  ls.style.display = 'flex'
+  ls.style.opacity = '0'
+  setTimeout(()=>{ ls.style.transition='opacity 0.35s ease'; ls.style.opacity='1' }, 10)
+  toast('Signed out. See you soon! 👋', 'info')
+}
+
+// ── Check for existing session on load ───────────────────────
+function checkSession(){
+  const session = DB.load('session', null)
+  if(!session || !session.userId) return false
+  // Auto-expire after 12 hours
+  if(Date.now() - session.loginTime > 12 * 60 * 60 * 1000){
+    DB.save('session', null)
+    return false
+  }
+  const users = getUsers()
+  const user  = users.find(u=>u.id===session.userId)
+  if(!user) return false
+  currentUser = user
+  return true
+}
+
+// ═══════════════════════════════════════════════════════════════
 // INIT
 // ═══════════════════════════════════════════════════════════════
-render()
+renderLoginChips()
+
+if(checkSession()){
+  // Already logged in — skip login screen
+  document.getElementById('login-screen').style.display = 'none'
+  const avatar = document.getElementById('topbar-avatar')
+  if(avatar){
+    avatar.textContent = currentUser.name[0]
+    avatar.style.background = currentUser.color+'22'
+    avatar.style.color = currentUser.color
+  }
+  document.getElementById('topbar-uname').textContent = currentUser.name
+  document.getElementById('topbar-urole').textContent = currentUser.role
+  render()
+} else {
+  // Show login — hide main app until logged in
+  document.getElementById('app').style.display = 'none'
+  // Reveal app when login succeeds (handled in mountApp)
+  const _origMountApp = mountApp
+  window.mountApp = function(user){
+    document.getElementById('app').style.display = 'flex'
+    _origMountApp(user)
+  }
+  // Focus username field
+  setTimeout(()=>{ const el=document.getElementById('login-username'); if(el) el.focus() }, 100)
+}
 </script>
 </body>
 </html>
